@@ -4,7 +4,7 @@ Usa `Faker("es_CO")` y fija la semilla con `Faker.seed(42)` y `random.seed(42)` 
 
 
 import random
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pandas as pd
 from faker import Faker
@@ -45,11 +45,15 @@ IDS_PRIORIDAD = [fake_ids.uuid4() for _ in range(3)]
 #4. Defino mi DATASET
 FILAS = 500
 
+# Fecha fija de referencia: si se usa "-1y" o "+3m" los datos cambian segun el dia de ejecucion
+FECHA_REFERENCIA = date(2026, 10, 1)
+
 #5. Construyo una funcion para generar los N datos pedidos (LIMPIOS)
 def generar_datos_limpios(numero_datos=FILAS):
     filas = []
     for _ in range(numero_datos):
-        fecha_inicio = fake.date_between(start_date="-1y", end_date="+3m")
+        fecha_inicio = fake.date_between(start_date=FECHA_REFERENCIA - timedelta(days=365),
+                                         end_date=FECHA_REFERENCIA + timedelta(days=90))
         filas.append({
             "id": fake.uuid4(),
             "nombre": fake.sentence(nb_words=6).rstrip("."),

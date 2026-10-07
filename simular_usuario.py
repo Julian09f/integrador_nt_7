@@ -1,5 +1,5 @@
 import random
-import uuid
+from datetime import datetime, timedelta
 import pandas as pd
 from faker import Faker
 
@@ -12,11 +12,11 @@ Faker.seed(42)
 random.seed(42)
 
 #3. Identifico los datos que debo simular
-#id (texto (UUID)) 
-#nombre (texto) 
-#correo (texto) 
-#contrasena_hash (texto) 
-#rol (texto) 
+#id (texto (UUID))
+#nombre (texto)
+#correo (texto)
+#contrasena_hash (texto)
+#rol (texto)
 #activo (booleano),
 #fecha_registro (fecha y hora)
 
@@ -26,30 +26,32 @@ ROLES=["ADMIN","EMPRESA","PARTICIPANTE"]
 #5. Defino mi DATASET
 FILAS=400
 
+# Fecha fija de referencia: si se usa "now" los datos cambian con cada ejecucion
+FECHA_REFERENCIA=datetime(2026, 10, 1)
+
 #6. Construyo una funcion para generar los N datos pedidos (LIMPIOS)
+# Se usa fake.uuid4() (y no uuid.uuid4()) porque respeta la semilla.
 def generar_datos_limpios(numero_datos=FILAS):
     filas=[]
     for _ in range(numero_datos):
-        
+
         filas.append({
-            "id":str(uuid.uuid4()),
+            "id":fake.uuid4(),
             "nombre":fake.name(),
             "correo":fake.email(),
             "contrasena_hash":fake.sha256(),
             "rol":random.choice(ROLES),
             "activo":random.choice([True,False]),
-            "fecha_registro":fake.date_time_between(start_date="-2y", end_date="now")
+            "fecha_registro":fake.date_time_between(start_date=FECHA_REFERENCIA-timedelta(days=730), end_date=FECHA_REFERENCIA)
 
         })
     return filas
-
-variable_noche=pd.DataFrame(generar_datos_limpios())
 
 #Ensuciar los datos
 
 #1. Crear una funcion para definir procentajes de error
 def generar_muestra(datos,porcentaje):
-    return datos.sample(fraccion=porcentaje, random_state=random.randint(0,999)).index
+    return datos.sample(frac=porcentaje, random_state=random.randint(0,999)).index
 
 #2. Crear una funcion para escribir mal un texto
 def escribir_mal(texto):
@@ -91,8 +93,28 @@ def ensuciar(datos_df):
     latino=datos_df["fecha_registro"].dt.strftime("%d/%m/%Y %H:%M")
     datos_df["fecha_registro"]=iso
     filas_elegidas=generar_muestra(datos_df,0.4)
-    datos_df.loc[filas_elegidas,"fecha_registro"]=latino.loc["filas_elegidas"]
+    datos_df.loc[filas_elegidas,"fecha_registro"]=latino.loc[filas_elegidas]
 
     #activo en ocaciones llega SI NO 1 o 0
+    # la columna se pasa a object porque una columna booleana no acepta textos
+    datos_df["activo"]=datos_df["activo"].astype(object)
     filas_elegidas=generar_muestra(datos_df,0.3)
     datos_df.loc[filas_elegidas,"activo"]=datos_df.loc[filas_elegidas,"activo"].map(convertir_booleano_texto)
+
+    return datos_df
+
+#5. Funcion principal: genera los usuarios limpios, los ensucia y devuelve el DataFrame
+# Se vuelve a fijar la semilla para que cada llamada devuelva SIEMPRE el mismo resultado.
+def generar_usuarios(n=FILAS):
+    Faker.seed(42)
+    random.seed(42)
+    df=pd.DataFrame(generar_datos_limpios(n))
+    df=ensuciar(df)
+    return df
+
+
+if __name__ == "__main__":
+    df=generar_usuarios()
+    print(df.shape)
+    print(df.head())
+    print(df.isna().sum())
