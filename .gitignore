@@ -3,3 +3,12 @@
 
 # Cache de Python
 __pycache__/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.vscode/
+.idea/
+.pytest_cache/
+.DS_Store
