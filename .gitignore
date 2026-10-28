@@ -34,3 +34,6 @@ __pycache__/
 .idea/
 .pytest_cache/
 .DS_Store
+
+# Datos generados por los scripts (simulacion, exportacion y limpieza)
+datos/

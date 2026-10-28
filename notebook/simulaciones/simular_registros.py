@@ -1,48 +1,118 @@
-#Rutina para convertir una lista de diccionarios en
-# multiples fuentes de informacion
+'''
+Tabla puente: vincula un Usuario con un Reto y deja trazabilidad. Crea el script `notebook/simulaciones/simular_registros.py`. 
 
-import json
-from pathlib import Path
+Con la libreria **Faker** genera 800 filas falsas de la tabla `registros`, con las MISMAS columnas que usa Backend II. 
+Despues **ensucia los datos a proposito**: nulos, duplicados, espacios sobrantes, mayusculas mezcladas y formatos distintos. 
+Esos errores son los que vas a arreglar en la etapa de limpieza, asi que tienen que quedar bien puestos.
 
-#1. configuracion ( cambiar segub su tabla)
+Usa `Faker("es_CO")` y fija la semilla con `Faker.seed(42)` y `random.seed(42)` para que el resultado sea SIEMPRE el mismo y tu compañero pueda reproducirlo.
+'''
+import random
+from datetime import datetime
+import pandas as pd
+from faker import Faker
 
-NOMBRE_ENTIDAD = "registros"
+#1. configurar el faker a la region que necesitamos
+fake = Faker("es_CO")
 
-CARPETA_PROYECTO = Path(__file__).resolve().parents[2]
+#2. fijar la semilla para que los datos sean reproducibles y coherentes
+Faker.seed(42)
+random.seed(42)
 
-CARPETA_CRUDOS = CARPETA_PROYECTO  / "datos" / "crudos"
-CARPETA_LIMPIOS = CARPETA_PROYECTO / "datos" / "limpios"
-CARPETA_REPORTES = CARPETA_PROYECTO / "datos" / "reportes"
+#3. Identifico los datos que necesito simular
+#id (texto (UUID))
+#fecha_registro (fecha y hora)
+#observacion (texto)
+#estado (texto)
+#id_usuario (texto (UUID))
+#id_reto (texto (UUID))
 
-#2. funciones genericas parar elaborar los archivos
+#4  identifico los datos que sea un selector
 
-#2.1 CREAR LAS CARPETA 
-def preparar_carpeta(carpeta):
-    carpeta.mkdir(parents=True, exist_ok=True)
-    return carpeta
+ESTADOS = ["inscrito", "en proceso", "finalizado"]
+IDS_USUARIO = [fake.uuid4() for _ in range(100)]
+IDS_RETO = [fake.uuid4() for _ in range(20)]
 
-#2.2 EXPORTAR A CSV
-def exportar_csv(datos_df,carpeta,nombre_archivo):
-    ruta=preparar_carpeta(carpeta)/f"{nombre_archivo}.csv"
-    datos_df.to_csv(ruta,index=False,encoding="utf-8-sig")
-    return ruta
+#5 definio mi DATASET
+FILAS = 800
+#Rango fijo de fechas: usar "now" haria que el dataset cambie en cada ejecucion
+FECHA_INICIO = datetime(2025, 1, 1)
+FECHA_FIN = datetime(2025, 12, 31, 23, 59)
 
-#2.3 EXPORTAR A JSON
-def exportar_json(datos_df,carpeta,nombre_archivo):
-    ruta=preparar_carpeta(carpeta)/f"{nombre_archivo}.json"
-    datos_df.to_json(ruta,orient="records",date_format="iso",indent=2)
-    return ruta
+#6 Construyo una funcion que generar los N datos pedidos (LIMPIOS)
+def generar_datos_limpio(numero_datos = FILAS):
+    filas = []
+    for _ in range(numero_datos):
+        filas.append({
+            "id":fake.uuid4(),
+            "fecha_registro":fake.date_time_between(start_date=FECHA_INICIO, end_date=FECHA_FIN),
+            "observacion":fake.sentence(nb_words=10),
+            "estado":random.choice(ESTADOS),
+            "id_usuario":random.choice(IDS_USUARIO),
+            "id_reto":random.choice(IDS_RETO)
+        })
+    return filas 
 
-#2.4 EXPORTAR A EXCEL
-def exportar_excel(datos_df,carpeta,nombre_archivo):
-    ruta=preparar_carpeta(carpeta)/f"{nombre_archivo}.xlsx"
-    datos_df.to_excel(ruta,index=False,engine="openpyxl")
-    return ruta
+#Ensuciar los datos
 
-# genero los archivos en mi proyecto
-def exportar_usuarios_crudos(datos_sucios_df):
-    return[
-        exportar_csv(datos_sucios_df,CARPETA_CRUDOS,f"{NOMBRE_ENTIDAD}_crudo"),
-        exportar_json(datos_sucios_df,CARPETA_CRUDOS,f"{NOMBRE_ENTIDAD}_crudo"),
-        exportar_excel(datos_sucios_df,CARPETA_CRUDOS,f"{NOMBRE_ENTIDAD}_crudo")
-    ]
+#1. crear una funcion para definir porcentajes de error
+def generar_muestra(datos,porcentaje):
+    return datos.sample(frac=porcentaje,
+    random_state=random.randint(0,999)).index
+
+#2. Crear una funcion para escribir mal un texto
+def escribir_mal(texto):
+    variantes=[texto.lower(),f" {texto.title()} ", texto.capitalize()]
+    return random.choice(variantes)
+
+#3. Convertir booleanos en textos
+def convertir_booleano_texto(valor):
+    if valor:
+        return random.choice(["SI", "1"])
+    return random.choice(["NO", "0"])
+
+#4. Funcion para ensuciar los datos
+def ensuciar(datos_df):
+    datos_df=datos_df.copy()
+
+    #fecha dos formatos mezclados (2026-03-15 14:30:00 y 15/03/2026 14:30)
+    iso=datos_df["fecha_registro"].dt.strftime("%Y-%m-%d %H:%M:%S")
+    latino=datos_df["fecha_registro"].dt.strftime("%d/%m/%Y %H:%M")
+    datos_df["fecha_registro"]=iso
+    filas_elegidas=generar_muestra(datos_df,0.4)
+    datos_df.loc[filas_elegidas,"fecha_registro"]=latino.loc[filas_elegidas]
+    
+    #observacion 20% nulos
+    filas_elegidas=generar_muestra(datos_df,0.20)
+    datos_df.loc[filas_elegidas,"observacion"]=None
+
+    #Se ensucia `estado`: variantes: 'inscrito', 'EN PROCESO', ' Finalizado '.
+    filas_elegidas=generar_muestra(datos_df,0.30)
+    datos_df.loc[filas_elegidas,"estado"]=datos_df.loc[filas_elegidas,"estado"].map(escribir_mal)
+
+    #10% con el par id_usuario + id_reto REPETIDO (mismo usuario inscrito dos veces en el mismo reto)
+    filas_elegidas=generar_muestra(datos_df,0.10)
+    filas_origen=datos_df.drop(index=filas_elegidas).sample(n=len(filas_elegidas), random_state=random.randint(0,999)).index
+    datos_df.loc[filas_elegidas,["id_usuario","id_reto"]]=datos_df.loc[filas_origen,["id_usuario","id_reto"]].values
+
+    #5% de las filas repetidas tal cual (duplicados exactos)
+    filas_duplicadas=datos_df.loc[generar_muestra(datos_df,0.05)]
+    datos_df=pd.concat([datos_df,filas_duplicadas],ignore_index=True)
+
+    return datos_df
+
+#5. Funcion principal para exportacion
+# Se vuelve a fijar la semilla para que cada llamada (por ejemplo desde el script
+# de exportacion) devuelva SIEMPRE el mismo resultado.
+def generar_registros(n=FILAS):
+    Faker.seed(42)
+    random.seed(42)
+    df_limpio = pd.DataFrame(generar_datos_limpio(n))
+    df = ensuciar(df_limpio)
+    return df
+
+if __name__ == "__main__":
+    df = generar_registros(800)
+    print(df.shape)
+    print(df.head())
+    print(df.isna().sum())
