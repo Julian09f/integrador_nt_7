@@ -1,10 +1,11 @@
-''' El elemento central: la necesidad que publica la empresa. Crea el script `notebook/simulaciones/simular_retos.py`. Con la libreria **Faker** genera 500 filas falsas de la tabla `retos`, con las MISMAS columnas que usa Backend II. Despues **ensucia los datos a proposito**: nulos, duplicados, espacios sobrantes, mayusculas mezcladas y formatos distintos. Esos errores son los que vas a arreglar en la etapa de limpieza, asi que tienen que quedar bien puestos.
+''' El elemento central: la necesidad que publica la empresa. Crea el script `src/simular_retos.py`. Con la libreria **Faker** genera 500 filas falsas de la tabla `retos`, con las MISMAS columnas que usa Backend II. Despues **ensucia los datos a proposito**: nulos, duplicados, espacios sobrantes, mayusculas mezcladas y formatos distintos. Esos errores son los que vas a arreglar en la etapa de limpieza, asi que tienen que quedar bien puestos.
 
 Usa `Faker("es_CO")` y fija la semilla con `Faker.seed(42)` y `random.seed(42)` para que el resultado sea SIEMPRE el mismo y tu compañero pueda reproducirlo.'''
 
 
 import random
-from datetime import date, timedelta
+import uuid
+from datetime import timedelta
 
 import pandas as pd
 from faker import Faker
@@ -45,17 +46,15 @@ IDS_PRIORIDAD = [fake_ids.uuid4() for _ in range(3)]
 #4. Defino mi DATASET
 FILAS = 500
 
-# Fecha fija de referencia: si se usa "-1y" o "+3m" los datos cambian segun el dia de ejecucion
-FECHA_REFERENCIA = date(2026, 10, 1)
 
 #5. Construyo una funcion para generar los N datos pedidos (LIMPIOS)
 def generar_datos_limpios(numero_datos=FILAS):
     filas = []
     for _ in range(numero_datos):
-        fecha_inicio = fake.date_between(start_date=FECHA_REFERENCIA - timedelta(days=365),
-                                         end_date=FECHA_REFERENCIA + timedelta(days=90))
+        # HU F01: rango relativo al dia de ejecucion (ver nota de reproducibilidad)
+        fecha_inicio = fake.date_between(start_date="-1y", end_date="+3m")
         filas.append({
-            "id": fake.uuid4(),
+            "id": str(uuid.uuid4()),  # HU F01 (no depende de la semilla)
             "nombre": fake.sentence(nb_words=6).rstrip("."),
             "descripcion": fake.sentence(nb_words=12),
             "fecha_inicio": fecha_inicio,
@@ -105,7 +104,7 @@ def ensuciar(datos_df):
     #fecha_fin: 8% en None (se eligen entre las filas no invertidas para no pisar el error anterior)
     restantes = datos_df.drop(index=filas_invertidas)
     filas_elegidas = restantes.sample(n=round(len(datos_df) * 0.08),
-    random_state=random.randint(0, 999)).index
+                                      random_state=random.randint(0, 999)).index
     datos_df.loc[filas_elegidas, "fecha_fin"] = None
 
     #fecha_inicio: dos formatos mezclados "2026-03-02" (60%) y "02/03/2026" (40%)
@@ -119,6 +118,10 @@ def ensuciar(datos_df):
     #estado: 7% con variantes de escritura ('en_curso', 'EN CURSO', ' Cerrado ')
     filas_elegidas = generar_muestra(datos_df, 0.07)
     datos_df.loc[filas_elegidas, "estado"] = datos_df.loc[filas_elegidas, "estado"].map(escribir_mal)
+
+    #fecha_fin a texto ISO (None se conserva): evita que to_json la exporte como epoch en ms
+    datos_df["fecha_fin"] = pd.to_datetime(datos_df["fecha_fin"]).dt.strftime("%Y-%m-%d")
+    datos_df["fecha_fin"] = datos_df["fecha_fin"].where(datos_df["fecha_fin"].notna(), None)
 
     #5% de las filas repetidas tal cual (duplicados exactos)
     datos_duplicados = datos_df.sample(frac=0.05, random_state=22)
