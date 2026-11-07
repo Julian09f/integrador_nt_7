@@ -7,6 +7,11 @@ NOMBRE_ENTIDAD="registros"
 
 CARPETA_PROYECTO=Path(__file__).resolve().parents[2] # con el parents me devuelvo un nivel por encima de donde estoy parado
 
+# Agrega la raiz del proyecto al sys.path para que "from notebook..." funcione
+# tanto con el boton Play como con "python exportar_registros.py" desde cualquier carpeta
+if str(CARPETA_PROYECTO) not in sys.path:
+    sys.path.insert(0, str(CARPETA_PROYECTO))
+
 CARPETA_CRUDOS =CARPETA_PROYECTO / "datos" / "crudos"
 CARPETA_LIMPIOS=CARPETA_PROYECTO / "datos" / "limpios"
 CARPETA_REPORTES=CARPETA_PROYECTO / "datos" / "reportes"
