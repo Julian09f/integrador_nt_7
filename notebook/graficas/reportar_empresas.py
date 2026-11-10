@@ -83,8 +83,9 @@ def conclusiones(df, por_sector):
         f"el de menos es {bajo} ({n_bajo}).",
         f"{pct_inactivas}% de las empresas esta inactivo: son organizaciones que no "
         "pueden publicar retos, asi que la plataforma debe incentivar su reactivacion.",
-        f"Aparecieron {n_invalidos} correos invalidos (sin '@'): hay que validar el "
-        "correo en el registro para no perder el contacto con la empresa.",
+        f"Aparecieron {n_invalidos} correos invalidos (sin '@'): hay que validarlos en el "
+        "back (en el modelo o el servicio, antes de guardar la empresa) porque un correo "
+        "mal escrito deja a la organizacion sin forma de contacto y ensucia la base de datos.",
         f"{n_sin_contacto} empresas no tienen persona de contacto: conviene hacerlo "
         "obligatorio en el formulario.",
     ]
