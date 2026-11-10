@@ -33,22 +33,27 @@ integrador_nt_7/
 │   └── reportes/                         # Salida de consultas (*.csv) y gráficas (*.png)
 └── notebook/
     ├── simulaciones/                     # Generación de datos sintéticos con Faker
+    │   ├── simular_categorias.py
     │   ├── simular_prioridades.py
     │   ├── simular_registros.py
     │   └── simular_retos.py
     ├── exportaciones/                    # Rutinas de exportación a CSV, JSON y Excel
+    │   ├── exportar_categorias.py
     │   ├── exportar_prioridades.py
     │   ├── exportar_registros.py
     │   └── exportar_retos.py
     ├── limpieza/                         # Pipelines de depuración y normalización
+    │   ├── limpiar_categorias.py
     │   ├── limpiar_prioridades.py
     │   ├── limpiar_registros.py
     │   └── limpiar_retos.py
     ├── consultas/                        # Historias de usuario HU Q01 (consultas analíticas)
+    │   ├── consultar_categorias.py
     │   ├── consultar_prioridades.py
     │   ├── consultar_registros.py
     │   └── consultar_retos.py
     └── graficas/                         # Historias de usuario HU G01 (gráficas con Matplotlib)
+        ├── reportar_categorias.py
         ├── reportar_prioridades.py
         ├── reportar_registros.py
         └── reportar_retos.py
@@ -162,6 +167,30 @@ python notebook/limpieza/limpiar_prioridades.py
 python notebook/consultas/consultar_prioridades.py
 python notebook/graficas/reportar_prioridades.py
 ```
+
+---
+
+### 4. Entidad `categorias` (Clasificación temática de los retos)
+Clasifica temáticamente los retos. `area_responsable` NO está en el modelo de Backend II: es una columna extra solo para este ejercicio de análisis, para poder agrupar.
+* **Columnas:** `id`, `nombre`, `descripcion`, `area_responsable`.
+* **Formato:** CSV delimitado por comas `,`, codificación `utf-8`.
+
+| Paso | Archivo | Responsabilidad |
+|---|---|---|
+| **1. Simular (HU F01)** | `notebook/simulaciones/simular_categorias.py` | Genera 250 filas con Faker (`es_CO`, semilla 42) a partir de solo 10 categorías reales. Aplica suciedad: 60% de nombres con variantes (`LOGISTICA`, ` logistica `, `logística`), 15% de descripciones nulas, 10% de áreas nulas y 8% de duplicados exactos. |
+| **2. Exportar crudos (HU X01)** | `notebook/exportaciones/exportar_categorias.py` | Importa `generar_categorias()` y genera `datos/crudos/categorias_sucio.{csv,xlsx,json}`. |
+| **3. Limpiar (HU L01)** | `notebook/limpieza/limpiar_categorias.py` | Elimina duplicados exactos, unifica el nombre (espacios, formato título y sin tildes), rellena nulos (`Sin descripcion`, `Sin asignar`) y crea `largo_desc`. Genera `datos/limpios/categorias_limpio.{csv,json,xlsx}` y el catálogo real `categorias_catalogo.csv`. |
+| **4. Consultar (HU Q01)** | `notebook/consultas/consultar_categorias.py` | Resuelve 5 consultas (3 con `groupby`) y guarda `datos/reportes/categorias_consulta_{1..5}.csv`. |
+| **5. Graficar (HU G01)** | `notebook/graficas/reportar_categorias.py` | Genera `datos/reportes/categorias_grafica_{1..3}.png` (barras horizontales por categoría, torta por área responsable, largo promedio de la descripción) e imprime conclusiones, incluida la razón de declarar `nombre` como único en el back. |
+
+**Ejecución completa del pipeline:**
+```bash
+python notebook/exportaciones/exportar_categorias.py
+python notebook/limpieza/limpiar_categorias.py
+python notebook/consultas/consultar_categorias.py
+python notebook/graficas/reportar_categorias.py
+```
+*Resultado esperado:* `250 filas crudas -> 230 filas limpias` (10 categorías reales).
 
 ---
 
