@@ -120,6 +120,10 @@ def ensuciar(datos_df):
     filas_elegidas = generar_muestra(datos_df, 0.07)
     datos_df.loc[filas_elegidas, "estado"] = datos_df.loc[filas_elegidas, "estado"].map(escribir_mal)
 
+    #fecha_fin a texto ISO (None se conserva): evita que to_json la exporte como epoch en ms
+    datos_df["fecha_fin"] = pd.to_datetime(datos_df["fecha_fin"]).dt.strftime("%Y-%m-%d")
+    datos_df["fecha_fin"] = datos_df["fecha_fin"].where(datos_df["fecha_fin"].notna(), None)
+
     #5% de las filas repetidas tal cual (duplicados exactos)
     datos_duplicados = datos_df.sample(frac=0.05, random_state=22)
     datos_df = pd.concat([datos_df, datos_duplicados], ignore_index=True)

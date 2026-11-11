@@ -42,7 +42,20 @@ def exportar_excel(datos_df,carpeta,nombre_archivo):
 
 #3. Genero los archivos en mi proyecto
 
+#Forma minima que pide la HU X01 para la tabla retos (validacion traida de develop)
+FILAS_ESPERADAS=500
+COLUMNAS_HU=["id", "nombre", "descripcion", "fecha_inicio", "fecha_fin",
+             "estado", "id_empresa", "id_categoria", "id_prioridad"]
+
+def validar_retos(datos_df):
+    faltan=[columna for columna in COLUMNAS_HU if columna not in datos_df.columns]
+    if faltan:
+        raise ValueError(f"faltan columnas de la HU: {faltan}")
+    if len(datos_df)<FILAS_ESPERADAS:
+        raise ValueError(f"se esperaban al menos {FILAS_ESPERADAS} filas, llegaron {len(datos_df)}")
+
 def exportar_retos_crudos(datos_sucios_df):
+    validar_retos(datos_sucios_df)
     return [
         exportar_csv(datos_sucios_df,CARPETA_CRUDOS,f"{NOMBRE_ENTIDAD}_crudo"),
 
@@ -64,5 +77,13 @@ def exportar_retos_limpios(datos_limpios_df):
 #4. Punto de entrada: genera los retos simulados (sucios) y los exporta a datos/crudos
 if __name__ == "__main__":
     from notebook.simulaciones.simular_retos import generar_retos
-    for ruta in exportar_retos_crudos(generar_retos()):
+    try:
+        rutas=exportar_retos_crudos(generar_retos())
+    except ValueError as error:
+        print(f"ERROR de datos: {error}", file=sys.stderr)
+        sys.exit(1)
+    except OSError as error:  # permisos, disco lleno, archivo abierto en Excel, etc.
+        print(f"ERROR al escribir archivos: {error}", file=sys.stderr)
+        sys.exit(2)
+    for ruta in rutas:
         print(ruta)

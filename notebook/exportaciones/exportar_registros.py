@@ -61,6 +61,9 @@ def exportar_registros_limpios(datos_limpios_df):
 
 
 if __name__ == "__main__":
+    # Al ejecutarlo directo, la raíz del proyecto no está en sys.path: se agrega para importar "notebook"
+    if str(CARPETA_PROYECTO) not in sys.path:
+        sys.path.append(str(CARPETA_PROYECTO))
     from notebook.simulaciones.simular_registros import generar_registros
     for ruta in exportar_registros_crudos(generar_registros()):
         print(ruta)
