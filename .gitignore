@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.pytest_cache/
 
 # Entornos virtuales
 .venv/
@@ -9,7 +10,7 @@ venv/
 env/
 ENV/
 
-# Archivos de entorno y configuracion local
+# Archivos de entorno y configuracion local (pueden tener credenciales)
 .env
 .env.*
 
@@ -20,20 +21,12 @@ ENV/
 # Archivos del sistema operativo
 .DS_Store
 Thumbs.db
-# Entorno virtual
-.venv/
 
-# Cache de Python
-__pycache__/
-.venv/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.vscode/
-.idea/
-.pytest_cache/
-.DS_Store
-
-# Datos generados por los scripts (simulacion, exportacion y limpieza)
+# Datos y reportes generados por los scripts (simulacion, exportacion, limpieza y graficas)
 datos/
+reportes/
+
+# Archivos CSV y Excel: se regeneran con los scripts, no se versionan
+*.csv
+*.xlsx
+~$*.xlsx
