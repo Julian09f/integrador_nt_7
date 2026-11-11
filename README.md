@@ -11,6 +11,26 @@ En VS Code: `Ctrl+Shift+P` → **Python: Select Interpreter** → `.\.venv\Scrip
 
 Todos los scripts de `notebook/` agregan la raíz del proyecto al `sys.path`, así que funcionan con el botón ▶, con `python <archivo>.py` desde su propia carpeta o con la ruta completa desde cualquier carpeta.
 
+## Ejecutar todo el pipeline: `main.py`
+Orquestador con interfaz web local. Ejecuta uno a uno los `.py` de `notebook/` en este orden (alfabético dentro de cada carpeta):
+**1. simulaciones → 2. exportaciones → 3. limpieza → 4. consultas → 5. graficas**.
+
+```
+python main.py                 # abre la interfaz en http://127.0.0.1:8765
+python main.py --cli           # mismo pipeline en la terminal, con colores
+python main.py --cli --detener-en-error
+python main.py --port 9000 --no-browser
+```
+
+| Archivo | Responsabilidad |
+|---|---|
+| `main.py` | Descubre los scripts (lista blanca), ejecuta cada uno en un proceso aparte (`MPLBACKEND=Agg`, UTF-8, límite 300 s), detecta los archivos creados o modificados en `datos/` y sirve la API local. Solo biblioteca estándar. |
+| `interfaz/index.html` | Interfaz (HTML/CSS/JS sin dependencias externas): KPIs, barra de progreso, línea de 5 fases, filtro por tabla, tarjeta por script con estado y tiempo, panel con pestañas **Salida / Avisos / Archivos** (tablas CSV con vista previa de 100 filas y gráficas PNG ampliables) y galería de gráficas. |
+
+**API local** (`127.0.0.1` únicamente): `GET /api/plan`, `POST /api/ejecutar?id=N` (requiere cabecera `X-Token` de la sesión), `GET /api/preview?ruta=datos/...csv`, `GET /archivo?ruta=datos/...`.
+**Seguridad:** no se expone a la red, valida la cabecera `Host` (anti DNS rebinding), token aleatorio por sesión en los POST (anti CSRF), solo ejecuta scripts de la lista blanca (el cliente envía un índice, nunca una ruta), solo sirve archivos dentro de `datos/` con extensiones permitidas, un solo script a la vez y toda salida se pinta con `textContent` (sin inyección HTML).
+Resultado esperado: `Resumen: 25 scripts, 0 con error.`
+
 ## Flujo de datos de `registros`
 Tabla puente usuario-reto. Columnas: `id`, `fecha_registro`, `observacion`, `estado`, `id_usuario`, `id_reto`.
 

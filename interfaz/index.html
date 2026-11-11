@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipeline Integrador NT7</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'">
+<style>
+:root{
+  --bg:#0b0b1a; --bg2:#12122a; --card:#17173a; --card2:#1e1e4a; --borde:#2c2c66;
+  --texto:#eef0ff; --suave:#a3a8d6; --tenue:#6b70a8;
+  --ok:#22e58a; --err:#ff4d6d; --warn:#ffc93c; --run:#3cc8ff;
+  --f1:#a855f7; --f2:#06b6d4; --f3:#22c55e; --f4:#f59e0b; --f5:#ec4899;
+  --grad:linear-gradient(90deg,#a855f7,#06b6d4,#22c55e,#f59e0b,#ec4899);
+  --radio:16px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:radial-gradient(1200px 600px at 10% -10%,#3b1a6b55,transparent),
+             radial-gradient(900px 500px at 110% 10%,#0e5a7a55,transparent),var(--bg);
+  color:var(--texto); font:15px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif; min-height:100vh;
+}
+button{font:inherit;cursor:pointer;border:0;color:inherit}
+.contenedor{max-width:1280px;margin:0 auto;padding:24px 16px 80px}
+
+/* ---------- cabecera ---------- */
+header{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+.logo{display:flex;gap:14px;align-items:center}
+.logo .ico{width:52px;height:52px;border-radius:14px;background:var(--grad);display:grid;place-items:center;font-size:26px;box-shadow:0 8px 30px #a855f766}
+h1{margin:0;font-size:26px;letter-spacing:.3px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--suave);font-size:13px}
+.acciones{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{padding:10px 18px;border-radius:12px;background:var(--card2);border:1px solid var(--borde);transition:.2s;font-weight:600}
+.btn:hover{transform:translateY(-2px);border-color:#5b5bd6}
+.btn.primario{background:linear-gradient(135deg,#a855f7,#ec4899);border:0;box-shadow:0 6px 24px #ec489955}
+.btn.primario:hover{box-shadow:0 10px 32px #ec489988}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.switch{display:flex;gap:8px;align-items:center;color:var(--suave);font-size:13px;user-select:none;cursor:pointer}
+.switch input{accent-color:#ec4899;width:16px;height:16px}
+
+/* ---------- KPIs ---------- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:22px 0 14px}
+.kpi{background:var(--card);border:1px solid var(--borde);border-radius:var(--radio);padding:14px 16px;position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--c,#a855f7)}
+.kpi .v{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}
+.kpi .l{color:var(--suave);font-size:12px;text-transform:uppercase;letter-spacing:.8px}
+
+/* ---------- progreso ---------- */
+.progreso{height:12px;border-radius:99px;background:var(--bg2);border:1px solid var(--borde);overflow:hidden}
+.progreso>div{height:100%;width:0;background:var(--grad);background-size:200% 100%;transition:width .5s ease;animation:fluir 3s linear infinite}
+@keyframes fluir{to{background-position:200% 0}}
+.progreso-txt{display:flex;justify-content:space-between;color:var(--suave);font-size:12px;margin-top:6px}
+
+/* ---------- stepper ---------- */
+.stepper{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:26px 0}
+.paso{position:relative;text-align:center;cursor:pointer;padding:6px 2px;border-radius:12px;transition:.2s}
+.paso:hover{background:#ffffff08}
+.paso:not(:last-child)::after{content:"";position:absolute;top:30px;left:calc(50% + 30px);right:calc(-50% + 30px);height:3px;border-radius:3px;background:var(--borde)}
+.paso.hecho:not(:last-child)::after{background:var(--c)}
+.burbuja{width:54px;height:54px;margin:0 auto 8px;border-radius:50%;display:grid;place-items:center;font-size:22px;background:var(--card);border:3px solid var(--c);box-shadow:0 0 0 0 var(--c);transition:.3s}
+.paso.activo .burbuja{animation:latido 1.2s infinite}
+.paso.hecho .burbuja{background:var(--c)}
+.paso.fallo .burbuja{border-color:var(--err);background:#ff4d6d33}
+@keyframes latido{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 70%,transparent)}100%{box-shadow:0 0 0 16px transparent}}
+.paso b{display:block;font-size:14px}
+.paso small{color:var(--suave);font-size:12px}
+
+/* ---------- filtros ---------- */
+.filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+.filtros span{color:var(--suave);font-size:13px;margin-right:4px}
+.chip{padding:6px 14px;border-radius:99px;background:var(--card);border:1px solid var(--borde);font-size:13px;transition:.2s}
+.chip.on{background:linear-gradient(135deg,#06b6d4,#a855f7);border-color:transparent;font-weight:700}
+
+/* ---------- fases y tarjetas ---------- */
+.fase{margin-bottom:26px;scroll-margin-top:16px}
+.fase-cab{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.fase-num{width:34px;height:34px;border-radius:10px;background:var(--c);display:grid;place-items:center;font-weight:800;color:#0b0b1a}
+.fase-cab h2{margin:0;font-size:19px}
+.fase-cab p{margin:0;color:var(--suave);font-size:13px}
+.fase-cab .btn{margin-left:auto;padding:7px 14px;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.tarjeta{background:linear-gradient(160deg,var(--card),var(--bg2));border:1px solid var(--borde);border-radius:var(--radio);padding:14px;display:flex;flex-direction:column;gap:10px;transition:.25s;position:relative;overflow:hidden}
+.tarjeta::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--c)}
+.tarjeta:hover{transform:translateY(-4px);box-shadow:0 12px 30px #0008;border-color:var(--c)}
+.tarjeta.ejecutando{border-color:var(--run);box-shadow:0 0 24px #3cc8ff55}
+.tarjeta.ok{border-color:#22e58a66}
+.tarjeta.error{border-color:var(--err);box-shadow:0 0 18px #ff4d6d44}
+.t-cab{display:flex;align-items:center;gap:10px}
+.t-ico{font-size:24px}
+.t-nom{font-weight:700;word-break:break-all;font-size:14px}
+.t-ent{color:var(--suave);font-size:12px;text-transform:capitalize}
+.estado{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;width:max-content}
+.estado.pendiente{background:#6b70a833;color:var(--suave)}
+.estado.ejecutando{background:#3cc8ff22;color:var(--run)}
+.estado.ok{background:#22e58a22;color:var(--ok)}
+.estado.error{background:#ff4d6d22;color:var(--err)}
+.giro{width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:girar .7s linear infinite}
+@keyframes girar{to{transform:rotate(360deg)}}
+.t-meta{display:flex;gap:12px;color:var(--suave);font-size:12px;flex-wrap:wrap}
+.t-acc{display:flex;gap:8px;margin-top:auto}
+.t-acc .btn{flex:1;padding:7px 10px;font-size:13px}
+
+/* ---------- panel de resultados ---------- */
+.velo{position:fixed;inset:0;background:#05051099;backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:.25s;z-index:20}
+.velo.on{opacity:1;pointer-events:auto}
+.panel{position:fixed;top:0;right:0;height:100vh;width:min(920px,100vw);background:var(--bg2);border-left:1px solid var(--borde);transform:translateX(100%);transition:transform .3s ease;z-index:21;display:flex;flex-direction:column}
+.panel.on{transform:none}
+.p-cab{padding:18px 20px;border-bottom:1px solid var(--borde);display:flex;gap:12px;align-items:center;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 30%,transparent),transparent)}
+.p-cab h3{margin:0;font-size:18px;word-break:break-all}
+.p-cab .cerrar{margin-left:auto;background:var(--card2);width:38px;height:38px;border-radius:10px;font-size:18px;flex:none}
+.tabs{display:flex;gap:4px;padding:10px 16px 0;border-bottom:1px solid var(--borde);overflow-x:auto}
+.tab{padding:9px 16px;border-radius:10px 10px 0 0;background:transparent;color:var(--suave);font-weight:600;white-space:nowrap}
+.tab.on{background:var(--card);color:var(--texto);box-shadow:inset 0 3px 0 var(--c)}
+.tab .n{background:var(--card2);border-radius:99px;padding:0 7px;margin-left:6px;font-size:11px}
+.p-cuerpo{flex:1;overflow:auto;padding:16px 20px}
+.consola{background:#07071a;border:1px solid var(--borde);border-radius:12px;padding:14px;font:12.5px/1.55 "Cascadia Code",Consolas,monospace;white-space:pre;overflow:auto;max-height:none}
+.consola .h{color:#c084fc;font-weight:700}
+.consola .e{color:var(--err)}
+.consola .w{color:var(--warn)}
+.consola .ok{color:var(--ok)}
+.vacio{color:var(--tenue);text-align:center;padding:40px 10px}
+.archivo{background:var(--card);border:1px solid var(--borde);border-radius:12px;margin-bottom:14px;overflow:hidden}
+.a-cab{display:flex;gap:10px;align-items:center;padding:10px 14px;cursor:pointer}
+.a-cab .tipo{font-size:11px;font-weight:800;padding:2px 8px;border-radius:6px;background:var(--c);color:#0b0b1a;text-transform:uppercase}
+.a-cab .peso{margin-left:auto;color:var(--suave);font-size:12px}
+.a-cuerpo{padding:0 14px 14px}
+.a-cuerpo img{max-width:100%;border-radius:10px;background:#fff;cursor:zoom-in;display:block}
+.tabla-wrap{overflow:auto;max-height:380px;border-radius:10px;border:1px solid var(--borde)}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th{position:sticky;top:0;background:var(--card2);text-align:left;padding:8px 10px;white-space:nowrap}
+td{padding:6px 10px;border-top:1px solid #2c2c6655;white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis}
+tr:hover td{background:#ffffff08}
+.nota{color:var(--suave);font-size:12px;margin-top:6px}
+.galeria{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+
+/* ---------- galería global ---------- */
+.seccion-galeria{margin-top:30px}
+.seccion-galeria h2{font-size:19px;margin:0 0 12px}
+.fig{background:var(--card);border:1px solid var(--borde);border-radius:12px;padding:8px;cursor:zoom-in;transition:.2s}
+.fig:hover{transform:scale(1.02);border-color:var(--f5)}
+.fig img{width:100%;border-radius:8px;background:#fff;display:block}
+.fig figcaption{font-size:12px;color:var(--suave);padding:6px 2px 0;word-break:break-all}
+
+/* ---------- lightbox y toasts ---------- */
+.lightbox{position:fixed;inset:0;background:#000d;display:none;place-items:center;z-index:40;cursor:zoom-out;padding:16px}
+.lightbox.on{display:grid}
+.lightbox img{max-width:96vw;max-height:92vh;border-radius:10px;background:#fff}
+.toasts{position:fixed;bottom:16px;left:16px;display:flex;flex-direction:column;gap:8px;z-index:50}
+.toast{background:var(--card2);border:1px solid var(--borde);border-left:4px solid var(--c,#a855f7);padding:10px 14px;border-radius:10px;min-width:240px;max-width:360px;box-shadow:0 10px 30px #0008;animation:entrar .3s ease}
+@keyframes entrar{from{transform:translateX(-30px);opacity:0}}
+.ayuda{background:var(--card);border:1px dashed var(--borde);border-radius:var(--radio);padding:12px 16px;color:var(--suave);font-size:13px;margin-top:8px}
+.ayuda b{color:var(--texto)}
+
+@media (max-width:720px){
+  .stepper{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .burbuja{width:40px;height:40px;font-size:17px}
+  .paso:not(:last-child)::after{top:24px;left:calc(50% + 22px);right:calc(-50% + 22px)}
+  .paso small{display:none}
+  .paso b{font-size:11px}
+  h1{font-size:20px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="contenedor">
+  <header>
+    <div class="logo">
+      <div class="ico">⚙️</div>
+      <div>
+        <h1>Pipeline Integrador NT7</h1>
+        <div class="sub" id="sub">Cargando plan de ejecución…</div>
+      </div>
+    </div>
+    <div class="acciones">
+      <label class="switch"><input type="checkbox" id="detener" checked> Detener al primer error</label>
+      <button class="btn" id="btnReiniciar" title="Limpia los resultados de la pantalla">↺ Reiniciar</button>
+      <button class="btn primario" id="btnTodo">▶ Ejecutar todo</button>
+    </div>
+  </header>
+
+  <section class="kpis">
+    <div class="kpi" style="--c:var(--f1)"><div class="v" id="kTotal">0</div><div class="l">Scripts</div></div>
+    <div class="kpi" style="--c:var(--ok)"><div class="v" id="kOk">0</div><div class="l">Exitosos</div></div>
+    <div class="kpi" style="--c:var(--err)"><div class="v" id="kErr">0</div><div class="l">Con error</div></div>
+    <div class="kpi" style="--c:var(--f2)"><div class="v" id="kTiempo">0.0 s</div><div class="l">Tiempo total</div></div>
+    <div class="kpi" style="--c:var(--f4)"><div class="v" id="kArch">0</div><div class="l">Archivos generados</div></div>
+  </section>
+
+  <div class="progreso"><div id="barra"></div></div>
+  <div class="progreso-txt"><span id="progTxt">Listo para ejecutar</span><span id="progPct">0%</span></div>
+
+  <nav class="stepper" id="stepper"></nav>
+
+  <div class="filtros" id="filtros"><span>Filtrar por tabla:</span></div>
+
+  <main id="fases"></main>
+
+  <section class="seccion-galeria" id="secGaleria" hidden>
+    <h2>🖼️ Galería de gráficas generadas</h2>
+    <div class="galeria" id="galeria"></div>
+  </section>
+
+  <div class="ayuda">
+    <b>¿Cómo se usa?</b> Pulsa <b>▶ Ejecutar todo</b> para correr las 5 fases en orden
+    (simulaciones → exportaciones → limpieza → consultas → gráficas), o ejecuta una fase o un archivo suelto.
+    Haz clic en <b>Ver resultado</b> para revisar la salida de consola, los avisos y las tablas o gráficas que generó cada archivo.
+    Cada script corre en su propio proceso, así que un error no afecta a los demás.
+  </div>
+</div>
+
+<div class="velo" id="velo"></div>
+<aside class="panel" id="panel" aria-hidden="true">
+  <div class="p-cab"><span class="t-ico" id="pIco"></span><div><h3 id="pTitulo"></h3><div class="sub" id="pSub"></div></div>
+    <button class="cerrar" id="pCerrar" aria-label="Cerrar">✕</button></div>
+  <div class="tabs" id="pTabs"></div>
+  <div class="p-cuerpo" id="pCuerpo"></div>
+</aside>
+<div class="lightbox" id="lightbox"><img id="lbImg" alt="Gráfica ampliada"></div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+"use strict";
+const TOKEN = "__TOKEN__";
+const ICONOS_FASE = {simulaciones:"🎲", exportaciones:"📦", limpieza:"🧹", consultas:"🔎", graficas:"📊"};
+const ICONOS_ENT = {categorias:"🏷️", empresas:"🏢", prioridades:"🚦", registros:"📝", retos:"🎯", usuarios:"👤"};
+const COLOR_FASE = n => `var(--f${n})`;
+
+const estado = {plan:null, res:{}, corriendo:false, filtro:"todas"};
+const $ = id => document.getElementById(id);
+const el = (tag, props = {}, ...hijos) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "style") e.style.cssText = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (k === "text") e.textContent = v;
+    else e.setAttribute(k, v);
+  }
+  hijos.flat().forEach(h => h != null && e.append(h));
+  return e;
+};
+const kb = b => b < 1024 ? `${b} B` : b < 1048576 ? `${(b/1024).toFixed(1)} KB` : `${(b/1048576).toFixed(1)} MB`;
+const urlArchivo = r => `/archivo?ruta=${encodeURIComponent(r)}&t=${Date.now()}`;
+
+function toast(msg, color = "var(--f1)") {
+  const t = el("div", {class:"toast", style:`--c:${color}`, text:msg});
+  $("toasts").append(t);
+  setTimeout(() => t.remove(), 4200);
+}
+
+/* ---------------- render ---------------- */
+function renderStepper() {
+  const s = $("stepper"); s.replaceChildren();
+  for (const f of estado.plan.fases) {
+    const scripts = estado.plan.scripts.filter(x => x.fase === f.carpeta);
+    const rs = scripts.map(x => estado.res[x.id]).filter(Boolean);
+    const hechos = rs.filter(r => r.estado === "ok").length;
+    const cls = ["paso"];
+    if (rs.some(r => r.estado === "error")) cls.push("fallo");
+    else if (scripts.length && hechos === scripts.length) cls.push("hecho");
+    if (rs.some(r => r.estado === "ejecutando")) cls.push("activo");
+    s.append(el("div", {class:cls.join(" "), style:`--c:${COLOR_FASE(f.numero)}`,
+      onclick:() => document.getElementById("fase-"+f.carpeta).scrollIntoView({behavior:"smooth"})},
+      el("div", {class:"burbuja", text:ICONOS_FASE[f.carpeta] || f.numero}),
+      el("b", {text:`${f.numero}. ${f.titulo}`}),
+      el("small", {text:`${hechos}/${scripts.length} listos`})));
+  }
+}
+
+function renderFiltros() {
+  const ents = ["todas", ...new Set(estado.plan.scripts.map(s => s.entidad))];
+  const cont = $("filtros");
+  cont.querySelectorAll(".chip").forEach(c => c.remove());
+  for (const e of ents) {
+    cont.append(el("button", {class:"chip" + (estado.filtro === e ? " on" : ""),
+      text:(ICONOS_ENT[e] ? ICONOS_ENT[e] + " " : "") + e,
+      onclick:() => { estado.filtro = e; renderFiltros(); renderFases(); }}));
+  }
+}
+
+function etiquetaEstado(r) {
+  const st = r ? r.estado : "pendiente";
+  const txt = {pendiente:"Pendiente", ejecutando:"Ejecutando…", ok:"Completado", error:"Error"}[st];
+  return el("span", {class:"estado " + st}, st === "ejecutando" ? el("span", {class:"giro"}) : null, txt);
+}
+
+function renderFases() {
+  const cont = $("fases"); cont.replaceChildren();
+  for (const f of estado.plan.fases) {
+    const scripts = estado.plan.scripts.filter(s => s.fase === f.carpeta &&
+      (estado.filtro === "todas" || s.entidad === estado.filtro));
+    const grid = el("div", {class:"grid"});
+    for (const s of scripts) {
+      const r = estado.res[s.id];
+      const meta = el("div", {class:"t-meta"});
+      if (r && r.datos) {
+        meta.append(el("span", {text:`⏱ ${r.datos.duracion_s} s`}),
+                    el("span", {text:`📄 ${r.datos.archivos.length} archivo(s)`}));
+        if (r.datos.avisos.trim()) meta.append(el("span", {text:"⚠ avisos", style:"color:var(--warn)"}));
+      } else meta.append(el("span", {text:s.ruta_relativa}));
+      grid.append(el("article", {class:"tarjeta " + (r ? r.estado : ""), style:`--c:${COLOR_FASE(f.numero)}`},
+        el("div", {class:"t-cab"},
+          el("span", {class:"t-ico", text:ICONOS_ENT[s.entidad] || "🐍"}),
+          el("div", {}, el("div", {class:"t-nom", text:s.archivo}), el("div", {class:"t-ent", text:s.entidad}))),
+        etiquetaEstado(r), meta,
+        el("div", {class:"t-acc"},
+          el("button", {class:"btn", text:"▶ Ejecutar", onclick:() => ejecutarLista([s])}),
+          el("button", {class:"btn", text:"👁 Ver resultado", onclick:() => abrirPanel(s.id)}))));
+    }
+    if (!scripts.length) grid.append(el("div", {class:"vacio", text:"Sin scripts para este filtro."}));
+    const todos = estado.plan.scripts.filter(s => s.fase === f.carpeta);
+    cont.append(el("section", {class:"fase", id:"fase-"+f.carpeta, style:`--c:${COLOR_FASE(f.numero)}`},
+      el("div", {class:"fase-cab"},
+        el("div", {class:"fase-num", text:f.numero}),
+        el("div", {}, el("h2", {text:`${ICONOS_FASE[f.carpeta] || ""} ${f.titulo}`}), el("p", {text:f.descripcion})),
+        el("button", {class:"btn", text:"▶ Ejecutar fase", onclick:() => ejecutarLista(todos)})),
+      grid));
+  }
+  document.querySelectorAll(".t-acc .btn:first-child, .fase-cab .btn").forEach(b => b.disabled = estado.corriendo);
+}
+
+function renderKpis() {
+  const rs = Object.values(estado.res);
+  const fin = rs.filter(r => r.datos);
+  const total = estado.plan.scripts.length;
+  const ok = rs.filter(r => r.estado === "ok").length;
+  $("kTotal").textContent = total;
+  $("kOk").textContent = ok;
+  $("kErr").textContent = rs.filter(r => r.estado === "error").length;
+  $("kTiempo").textContent = fin.reduce((a, r) => a + r.datos.duracion_s, 0).toFixed(1) + " s";
+  $("kArch").textContent = new Set(fin.flatMap(r => r.datos.archivos.map(a => a.ruta))).size;
+  const pct = total ? Math.round(fin.length / total * 100) : 0;
+  $("barra").style.width = pct + "%";
+  $("progPct").textContent = pct + "%";
+  renderGaleria();
+}
+
+function renderGaleria() {
+  const imgs = new Map();
+  for (const r of Object.values(estado.res))
+    for (const a of (r.datos?.archivos || []))
+      if (a.tipo === "png") imgs.set(a.ruta, r.version);
+  $("secGaleria").hidden = imgs.size === 0;
+  const g = $("galeria"); g.replaceChildren();
+  for (const [ruta, v] of imgs) {
+    const src = `/archivo?ruta=${encodeURIComponent(ruta)}&v=${v}`;
+    g.append(el("figure", {class:"fig", style:"margin:0", onclick:() => verImagen(src)},
+      el("img", {src, alt:ruta, loading:"lazy"}), el("figcaption", {text:ruta.split("/").pop()})));
+  }
+}
+
+function renderTodo() { renderStepper(); renderFases(); renderKpis(); }
+
+/* ---------------- ejecución ---------------- */
+async function ejecutarUno(s) {
+  estado.res[s.id] = {estado:"ejecutando"};
+  $("progTxt").textContent = `Ejecutando ${s.ruta_relativa}…`;
+  renderTodo();
+  try {
+    const resp = await fetch(`/api/ejecutar?id=${s.id}`, {method:"POST", headers:{"X-Token":TOKEN}});
+    const datos = await resp.json();
+    if (!resp.ok) throw new Error(datos.error || resp.statusText);
+    estado.res[s.id] = {estado: datos.ok ? "ok" : "error", datos, version: Date.now()};
+    if (!datos.ok) toast(`❌ ${s.archivo} terminó con error (código ${datos.codigo})`, "var(--err)");
+  } catch (e) {
+    estado.res[s.id] = {estado:"error", version:Date.now(),
+      datos:{...s, ok:false, codigo:-1, duracion_s:0, salida:"", avisos:"No se pudo ejecutar: " + e.message, archivos:[]}};
+    toast(`❌ ${s.archivo}: ${e.message}`, "var(--err)");
+  }
+  renderTodo();
+  if (panelActual === s.id) abrirPanel(s.id);
+  return estado.res[s.id].estado === "ok";
+}
+
+async function ejecutarLista(lista) {
+  if (estado.corriendo) return;
+  estado.corriendo = true;
+  $("btnTodo").disabled = $("btnReiniciar").disabled = true;
+  renderFases();
+  const t0 = performance.now();
+  let errores = 0;
+  for (const s of lista) {
+    const ok = await ejecutarUno(s);
+    if (!ok) { errores++; if ($("detener").checked) { toast("⏸ Ejecución detenida por error", "var(--warn)"); break; } }
+  }
+  estado.corriendo = false;
+  $("btnTodo").disabled = $("btnReiniciar").disabled = false;
+  const seg = ((performance.now() - t0) / 1000).toFixed(1);
+  $("progTxt").textContent = errores ? `Terminado con ${errores} error(es) en ${seg} s` : `✔ Terminado sin errores en ${seg} s`;
+  if (!errores) toast(`✅ ${lista.length} script(s) ejecutados en ${seg} s`, "var(--ok)");
+  renderTodo();
+}
+
+/* ---------------- panel de detalle ---------------- */
+let panelActual = null;
+function lineasConsola(texto) {
+  const pre = el("div", {class:"consola"});
+  for (const linea of texto.split("\n")) {
+    let cls = "";
+    if (/^\s*(=+|-{3,}|#)/.test(linea) || /^\s*=== .* ===/.test(linea)) cls = "h";
+    else if (/error|traceback|exception/i.test(linea)) cls = "e";
+    else if (/aviso|warning|advertencia/i.test(linea)) cls = "w";
+    else if (/\b(ok|guardad[oa]|generad[oa]|listo|exportad[oa])\b/i.test(linea)) cls = "ok";
+    pre.append(cls ? el("span", {class:cls, text:linea}) : document.createTextNode(linea), "\n");
+  }
+  return pre;
+}
+
+async function bloqueArchivo(a, c) {
+  const cuerpo = el("div", {class:"a-cuerpo"});
+  const caja = el("div", {class:"archivo", style:`--c:${c}`},
+    el("div", {class:"a-cab", onclick:() => cuerpo.hidden = !cuerpo.hidden},
+      el("span", {class:"tipo", text:a.tipo}), el("span", {text:a.ruta}), el("span", {class:"peso", text:kb(a.bytes)})),
+    cuerpo);
+  if (a.tipo === "png") {
+    const src = urlArchivo(a.ruta);
+    cuerpo.append(el("img", {src, alt:a.ruta, onclick:() => verImagen(src)}));
+  } else if (a.tipo === "csv") {
+    cuerpo.append(el("div", {class:"nota", text:"Cargando vista previa…"}));
+    try {
+      const d = await (await fetch(`/api/preview?ruta=${encodeURIComponent(a.ruta)}`)).json();
+      const tabla = el("table", {},
+        el("thead", {}, el("tr", {}, d.columnas.map(c => el("th", {text:c})))),
+        el("tbody", {}, d.filas.map(f => el("tr", {}, f.map(v => el("td", {text:v, title:v}))))));
+      cuerpo.replaceChildren(el("div", {class:"tabla-wrap"}, tabla),
+        el("div", {class:"nota", text:`Mostrando ${d.filas.length} de ${d.total} filas · ${d.columnas.length} columnas`}));
+    } catch { cuerpo.replaceChildren(el("div", {class:"nota", text:"No se pudo leer la vista previa."})); }
+  } else {
+    cuerpo.hidden = true;
+    cuerpo.append(el("a", {href:urlArchivo(a.ruta), download:"", style:"color:var(--f2)", text:"⬇ Descargar archivo"}));
+  }
+  return caja;
+}
+
+function abrirPanel(id) {
+  panelActual = id;
+  const s = estado.plan.scripts[id];
+  const r = estado.res[id];
+  const c = COLOR_FASE(s.fase_numero);
+  $("panel").style.setProperty("--c", c);
+  $("pIco").textContent = ICONOS_ENT[s.entidad] || "🐍";
+  $("pTitulo").textContent = s.ruta_relativa;
+  $("pSub").textContent = r?.datos
+    ? `${r.datos.ok ? "✔ Completado" : "✖ Error (código " + r.datos.codigo + ")"} · ${r.datos.duracion_s} s · Fase ${s.fase_numero}: ${s.fase_titulo}`
+    : `Fase ${s.fase_numero}: ${s.fase_titulo} · ${r?.estado === "ejecutando" ? "ejecutando…" : "aún no se ha ejecutado"}`;
+
+  const d = r?.datos;
+  const pestañas = [
+    {k:"salida", t:"🖥 Salida", n: d ? d.salida.split("\n").filter(Boolean).length : 0},
+    {k:"avisos", t:"⚠ Avisos", n: d ? d.avisos.split("\n").filter(Boolean).length : 0},
+    {k:"archivos", t:"📁 Archivos", n: d ? d.archivos.length : 0},
+  ];
+  const elegir = async k => {
+    $("pTabs").querySelectorAll(".tab").forEach(b => b.classList.toggle("on", b.dataset.k === k));
+    const cuerpo = $("pCuerpo"); cuerpo.replaceChildren();
+    if (!d) { cuerpo.append(el("div", {class:"vacio", text:"Ejecuta este archivo para ver sus resultados."})); return; }
+    if (k === "salida") cuerpo.append(d.salida.trim() ? lineasConsola(d.salida) : el("div", {class:"vacio", text:"El script no imprimió nada en consola."}));
+    if (k === "avisos") cuerpo.append(d.avisos.trim() ? lineasConsola(d.avisos) : el("div", {class:"vacio", text:"✔ Sin avisos ni errores."}));
+    if (k === "archivos") {
+      if (!d.archivos.length) { cuerpo.append(el("div", {class:"vacio", text:"Este script no generó ni modificó archivos en datos/."})); return; }
+      for (const a of d.archivos) cuerpo.append(await bloqueArchivo(a, c));
+    }
+  };
+  $("pTabs").replaceChildren(...pestañas.map(p => el("button", {class:"tab", "data-k":p.k, onclick:() => elegir(p.k)},
+    p.t, el("span", {class:"n", text:p.n}))));
+  // abre la pestaña más útil: errores primero, luego archivos (consultas/gráficas), luego salida
+  const inicial = d && !d.ok ? "avisos" : d && d.archivos.some(a => ["png","csv"].includes(a.tipo)) &&
+    ["consultas","graficas"].includes(s.fase) ? "archivos" : "salida";
+  elegir(inicial);
+  $("panel").classList.add("on"); $("velo").classList.add("on");
+  $("panel").setAttribute("aria-hidden", "false");
+}
+function cerrarPanel() {
+  panelActual = null;
+  $("panel").classList.remove("on"); $("velo").classList.remove("on");
+  $("panel").setAttribute("aria-hidden", "true");
+}
+function verImagen(src) { $("lbImg").src = src; $("lightbox").classList.add("on"); }
+
+/* ---------------- arranque ---------------- */
+$("pCerrar").onclick = cerrarPanel;
+$("velo").onclick = cerrarPanel;
+$("lightbox").onclick = () => $("lightbox").classList.remove("on");
+document.addEventListener("keydown", e => { if (e.key === "Escape") { $("lightbox").classList.remove("on"); cerrarPanel(); } });
+$("btnTodo").onclick = () => { estado.res = {}; ejecutarLista(estado.plan.scripts); };
+$("btnReiniciar").onclick = () => { estado.res = {}; $("progTxt").textContent = "Listo para ejecutar"; renderTodo(); };
+
+(async () => {
+  try {
+    estado.plan = await (await fetch("/api/plan")).json();
+    $("sub").textContent = `${estado.plan.scripts.length} scripts · ${estado.plan.fases.length} fases · Python ${estado.plan.python}`;
+    renderFiltros(); renderTodo();
+  } catch (e) {
+    $("sub").textContent = "No se pudo cargar el plan: " + e.message;
+  }
+})();
+</script>
+</body>
+</html>
